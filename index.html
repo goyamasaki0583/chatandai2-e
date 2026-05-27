@@ -91,7 +91,23 @@
         <span id="toastMessage"></span>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // クラウドデータベース接続用の設定
+const firebaseConfig = {
+  apiKey: "AIzaSyDN7mO43wA4O8q1pzFniIZ5AiDx_bzr1Zk",
+  authDomain: "fir-1e66a.firebaseapp.com",
+  projectId: "fir-1e66a",
+  storageBucket: "fir-1e66a.firebasestorage.app",
+  messagingSenderId: "613804608794",
+  appId: "1:613804608794:web:c226daa35289a5de61b0a3"
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+
         const timeSlots = [
             "１校時", "２校時", "３校時", "４校時", "給食中休み", "５校時", "６校時",
             "15時30分～16時30分", "16時30分～17時30分", "17時30分～18時30分", "18時30分～19時30分"
@@ -127,6 +143,11 @@
         const cancelReservationBtn = document.getElementById('cancelReservationBtn');
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toastMessage');
+
+        // HTMLからの呼び出し（onclick等）に対応するためグローバルに登録
+        window.closeModal = closeModal;
+        window.saveReservation = saveReservation;
+        window.cancelReservation = cancelReservation;
 
         function formatDateForInput(date) {
             const y = date.getFullYear();
@@ -331,7 +352,23 @@
             clearSelectionUI();
         }
 
-        function saveReservation() {
+        // データベースに同期する処理
+        async function syncToDatabase(dateStr) {
+            if (!db || !currentUser) {
+                // クラウド設定がない環境（GitHub Pagesにそのまま上げた場合など）ではローカルの更新のみ
+                updateView();
+                return;
+            }
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'facility_reservations', dateStr);
+                await setDoc(docRef, { slots: reservations[dateStr] || {} });
+            } catch (error) {
+                console.error("保存エラー:", error);
+                showToast("データの同期に失敗しました");
+            }
+        }
+
+        async function saveReservation() {
             const name = reserverNameInput.value.trim();
             const purpose = reservationPurposeInput.value.trim();
 
@@ -356,11 +393,11 @@
             });
 
             closeModal();
-            updateView();
+            await syncToDatabase(dateStr);
             showToast(isUpdate ? '予約を更新しました' : '予約を保存しました');
         }
 
-        function cancelReservation() {
+        async function cancelReservation() {
             const dateStr = currentEditingDate;
 
             currentSelectedCells.forEach(cell => {
@@ -375,7 +412,7 @@
             }
 
             closeModal();
-            updateView();
+            await syncToDatabase(dateStr);
             showToast('予約をキャンセルしました');
         }
 
@@ -414,9 +451,55 @@
             });
         }
 
+        // クラウドから最新データをリアルタイムで受け取る処理
+        function setupRealtimeSync() {
+            if (!db || !currentUser) return;
+            const reservationsRef = collection(db, 'artifacts', appId, 'public', 'data', 'facility_reservations');
+            
+            onSnapshot(reservationsRef, (snapshot) => {
+                reservations = {};
+                snapshot.forEach((doc) => {
+                    reservations[doc.id] = doc.data().slots || {};
+                });
+                updateView(); // 変更があったら画面を更新
+            }, (error) => {
+                console.error("同期エラー:", error);
+            });
+        }
+
         function init() {
             setupEventListeners();
             updateView();
+
+            // クラウドデータベースの初期化
+            if (firebaseConfig) {
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    const initAuth = async () => {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    };
+
+                    initAuth().catch(console.error);
+
+                    onAuthStateChanged(auth, (user) => {
+                        currentUser = user;
+                        if (user) {
+                            setupRealtimeSync(); // 認証成功後にリアルタイム同期を開始
+                        }
+                    });
+                } catch (e) {
+                    console.error("データベースセットアップエラー:", e);
+                }
+            } else {
+                console.warn("クラウド設定がありません。リロードするとデータは消えます。");
+            }
         }
 
         // DOMロード時に初期化
