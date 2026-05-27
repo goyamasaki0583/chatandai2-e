@@ -97,13 +97,17 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // クラウドデータベース接続用の設定
-const firebaseConfig = {
-  apiKey: "AIzaSyDN7mO43wA4O8q1pzFniIZ5AiDx_bzr1Zk",
-  authDomain: "fir-1e66a.firebaseapp.com",
-  projectId: "fir-1e66a",
-  storageBucket: "fir-1e66a.firebasestorage.app",
-  messagingSenderId: "613804608794",
-  appId: "1:613804608794:web:c226daa35289a5de61b0a3"
+        const firebaseConfig = {
+            apiKey: "AIzaSyDN7mO43wA4O8q1pzFniIZ5AiDx_bzr1Zk",
+            authDomain: "fir-1e66a.firebaseapp.com",
+            projectId: "fir-1e66a",
+            storageBucket: "fir-1e66a.firebasestorage.app",
+            messagingSenderId: "613804608794",
+            appId: "1:613804608794:web:c226daa35289a5de61b0a3"
+        };
+        // データベースに保存する際のグループ名としてappIdを使用します
+        const appId = "chatan-reservation-app";
+        
         let db = null;
         let auth = null;
         let currentUser = null;
@@ -355,7 +359,6 @@ const firebaseConfig = {
         // データベースに同期する処理
         async function syncToDatabase(dateStr) {
             if (!db || !currentUser) {
-                // クラウド設定がない環境（GitHub Pagesにそのまま上げた場合など）ではローカルの更新のみ
                 updateView();
                 return;
             }
@@ -479,8 +482,14 @@ const firebaseConfig = {
                     db = getFirestore(app);
 
                     const initAuth = async () => {
+                        // GitHub等にホストした場合は__initial_auth_tokenは未定義になり匿名ログインが走ります
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
+                            try {
+                                await signInWithCustomToken(auth, __initial_auth_token);
+                            } catch (error) {
+                                console.warn("カスタムトークンの認証に失敗しました。ご自身のFirebaseプロジェクトに対して匿名ログインを試みます。");
+                                await signInAnonymously(auth);
+                            }
                         } else {
                             await signInAnonymously(auth);
                         }
