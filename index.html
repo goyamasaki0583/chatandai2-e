@@ -64,13 +64,20 @@
                 <div>
                     <p id="modalInfo" class="text-sm text-blue-800 mb-4 bg-blue-50 p-2 rounded border border-blue-100"></p>
                 </div>
+                <div id="modalError" class="hidden text-sm text-red-700 mb-4 bg-red-50 p-3 rounded border border-red-200 whitespace-pre-wrap"></div>
                 <div>
                     <label for="reserverName" class="block text-sm font-medium text-blue-900 mb-1">予約者名 (必須)</label>
-                    <input type="text" id="reserverName" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：みやぎ ひとし／○年○組">
+                    <input type="text" id="reserverName" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：呉屋正樹／○年○組">
                 </div>
                 <div>
                     <label for="reservationPurpose" class="block text-sm font-medium text-blue-900 mb-1">使用目的 (任意)</label>
                     <input type="text" id="reservationPurpose" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例: 職員会議 / クラブ活動">
+                </div>
+                <div id="repeatContainer" class="flex items-center pt-2">
+                    <input id="repeatFourWeeks" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-blue-300 rounded cursor-pointer">
+                    <label for="repeatFourWeeks" class="ml-2 block text-sm font-medium text-blue-900 cursor-pointer">
+                        ４週間先まで同じ曜日・時間で予約する
+                    </label>
                 </div>
             </div>
             <div class="px-6 py-4 bg-blue-50 flex justify-between items-center border-t border-blue-100">
@@ -118,8 +125,8 @@
         ];
         
         const facilities = [
-            "第一会議室", "第二会議室", "算数教室", "PC室", "運動場", "１階多目", "３階多目",
-            "体育館", "家庭科室"
+            "第一会議室", "第二会議室", "算数教室", "PC室", "１階多目", "３階多目",
+            "体育館", "家庭科室", "もろみさん"
         ];
 
         let reservations = {};
@@ -131,6 +138,7 @@
         let isDragging = false;
         let dragStart = null;
         let dragEnd = null;
+        let currentIsEditMode = false;
 
         const datePicker = document.getElementById('datePicker');
         const todayBtn = document.getElementById('todayBtn');
@@ -141,8 +149,11 @@
         const reservationModal = document.getElementById('reservationModal');
         const modalTitle = document.getElementById('modalTitle');
         const modalInfo = document.getElementById('modalInfo');
+        const modalError = document.getElementById('modalError');
         const reserverNameInput = document.getElementById('reserverName');
         const reservationPurposeInput = document.getElementById('reservationPurpose');
+        const repeatContainer = document.getElementById('repeatContainer');
+        const repeatFourWeeksCheckbox = document.getElementById('repeatFourWeeks');
         const saveReservationBtn = document.getElementById('saveReservationBtn');
         const cancelReservationBtn = document.getElementById('cancelReservationBtn');
         const toast = document.getElementById('toast');
@@ -327,17 +338,24 @@
             reserverNameInput.value = '';
             reservationPurposeInput.value = '';
             reserverNameInput.classList.remove('border-red-500');
+            modalError.classList.add('hidden');
+            modalError.textContent = '';
 
             if (existingReservation) {
+                currentIsEditMode = true;
                 modalTitle.textContent = '予約の確認・編集';
                 reserverNameInput.value = existingReservation.name;
                 reservationPurposeInput.value = existingReservation.purpose || '';
                 saveReservationBtn.textContent = '更新する';
                 cancelReservationBtn.classList.remove('hidden');
+                repeatContainer.classList.add('hidden');
             } else {
+                currentIsEditMode = false;
                 modalTitle.textContent = '新規予約';
                 saveReservationBtn.textContent = '予約する';
                 cancelReservationBtn.classList.add('hidden');
+                repeatFourWeeksCheckbox.checked = false;
+                repeatContainer.classList.remove('hidden');
             }
 
             reservationModal.classList.remove('hidden');
@@ -383,21 +401,65 @@
             }
 
             const dateStr = currentEditingDate;
+            const isRepeat = repeatFourWeeksCheckbox.checked;
+            let datesToSave = [dateStr];
 
-            if (!reservations[dateStr]) {
-                reservations[dateStr] = {};
+            // リピート機能がオンで、新規作成の場合のみ4週分を追加
+            if (isRepeat && !currentIsEditMode) {
+                let baseDate = new Date(dateStr);
+                for (let i = 1; i <= 4; i++) {
+                    baseDate.setDate(baseDate.getDate() + 7);
+                    datesToSave.push(formatDateForInput(baseDate));
+                }
+            }
+
+            // 重複予約のチェック
+            let conflictMessages = [];
+            datesToSave.forEach(dStr => {
+                // 編集モードでの当日更新は重複チェックから除外
+                if (currentIsEditMode && dStr === dateStr) return; 
+                
+                if (reservations[dStr]) {
+                    currentSelectedCells.forEach(cell => {
+                        const cellKey = `${cell.timeIdx}_${cell.facIdx}`;
+                        if (reservations[dStr][cellKey]) {
+                            const dt = new Date(dStr);
+                            const displayD = `${dt.getMonth() + 1}月${dt.getDate()}日`;
+                            conflictMessages.push(`・${displayD} ${timeSlots[cell.timeIdx]} (${facilities[cell.facIdx]})`);
+                        }
+                    });
+                }
+            });
+
+            if (conflictMessages.length > 0) {
+                modalError.textContent = `以下の日時に既に予約があるため、上書きできません。\n\n${conflictMessages.join('\n')}\n\n別の時間帯を指定するか、「4週間先まで～」のチェックを外してください。`;
+                modalError.classList.remove('hidden');
+                return; // ここで処理を中断
             }
 
             let isUpdate = false;
-            currentSelectedCells.forEach(cell => {
-                const cellKey = `${cell.timeIdx}_${cell.facIdx}`;
-                if (reservations[dateStr][cellKey]) isUpdate = true;
-                reservations[dateStr][cellKey] = { name, purpose };
+            
+            datesToSave.forEach(dStr => {
+                if (!reservations[dStr]) {
+                    reservations[dStr] = {};
+                }
+
+                currentSelectedCells.forEach(cell => {
+                    const cellKey = `${cell.timeIdx}_${cell.facIdx}`;
+                    // 現在編集中の日付で、既に予約があれば「更新」扱いとする
+                    if (dStr === dateStr && reservations[dStr][cellKey]) isUpdate = true;
+                    reservations[dStr][cellKey] = { name, purpose };
+                });
             });
 
             closeModal();
-            await syncToDatabase(dateStr);
-            showToast(isUpdate ? '予約を更新しました' : '予約を保存しました');
+            updateView();
+            
+            // クラウドデータベースへの保存を並行して行う
+            const syncPromises = datesToSave.map(dStr => syncToDatabase(dStr));
+            await Promise.all(syncPromises);
+            
+            showToast(isUpdate ? '予約を更新しました' : (isRepeat ? '4週間先まで予約を保存しました' : '予約を保存しました'));
         }
 
         async function cancelReservation() {
