@@ -486,9 +486,6 @@
         }
 
         function updateDateButtons() {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
             const current = new Date(currentDate);
             current.setHours(0, 0, 0, 0);
 
@@ -499,12 +496,6 @@
             next.setDate(next.getDate() + 1);
 
             function getDayLabel(dateObj) {
-                const diff = Math.round((dateObj - today) / 86400000);
-                if (diff === 0) return "今日";
-                if (diff === 1) return "明日";
-                if (diff === 2) return "明後日";
-                if (diff === -1) return "昨日";
-                if (diff === -2) return "一昨日";
                 return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
             }
 
