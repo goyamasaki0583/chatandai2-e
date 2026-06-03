@@ -29,8 +29,10 @@
         <div class="max-w-7xl mx-auto w-full h-full bg-white rounded-lg shadow-sm border border-blue-200 flex flex-col overflow-hidden">
             
             <!-- 日付表示 -->
-            <div class="p-4 bg-blue-100 border-b border-blue-200 text-center shrink-0">
-                <h2 id="currentDateDisplay" class="text-2xl font-semibold text-blue-900"></h2>
+            <div class="p-4 bg-blue-100 border-b border-blue-200 flex justify-center items-center gap-4 shrink-0">
+                <button id="prevDayBtn" class="bg-white hover:bg-blue-50 text-blue-600 border border-blue-300 px-3 py-1.5 rounded shadow-sm text-sm font-medium transition-colors">◀ 昨日</button>
+                <h2 id="currentDateDisplay" class="text-2xl font-semibold text-blue-900 w-64 text-center"></h2>
+                <button id="nextDayBtn" class="bg-white hover:bg-blue-50 text-blue-600 border border-blue-300 px-3 py-1.5 rounded shadow-sm text-sm font-medium transition-colors">明日 ▶</button>
             </div>
 
             <!-- 予約表コンテナ -->
@@ -67,7 +69,7 @@
                 <div id="modalError" class="hidden text-sm text-red-700 mb-4 bg-red-50 p-3 rounded border border-red-200 whitespace-pre-wrap"></div>
                 <div>
                     <label for="reserverName" class="block text-sm font-medium text-blue-900 mb-1">予約者名 (必須)</label>
-                    <input type="text" id="reserverName" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：みやぎ ひとし／○年○組">
+                    <input type="text" id="reserverName" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：呉屋正樹／○年○組">
                 </div>
                 <div>
                     <label for="reservationPurpose" class="block text-sm font-medium text-blue-900 mb-1">使用目的 (任意)</label>
@@ -126,7 +128,7 @@
         
         const facilities = [
             "第一会議室", "第二会議室", "算数教室", "PC室", "１階多目", "３階多目",
-            "体育館", "家庭科室", "運動場"
+            "体育館", "家庭科室", "もろみさん"
         ];
 
         let reservations = {};
@@ -142,6 +144,8 @@
 
         const datePicker = document.getElementById('datePicker');
         const todayBtn = document.getElementById('todayBtn');
+        const prevDayBtn = document.getElementById('prevDayBtn');
+        const nextDayBtn = document.getElementById('nextDayBtn');
         const currentDateDisplay = document.getElementById('currentDateDisplay');
         const facilitiesHeader = document.getElementById('facilitiesHeader');
         const reservationTableBody = document.getElementById('reservationTableBody');
@@ -512,6 +516,16 @@
 
             todayBtn.addEventListener('click', () => {
                 currentDate = new Date();
+                updateView();
+            });
+
+            prevDayBtn.addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() - 1);
+                updateView();
+            });
+
+            nextDayBtn.addEventListener('click', () => {
+                currentDate.setDate(currentDate.getDate() + 1);
                 updateView();
             });
         }
