@@ -69,7 +69,7 @@
                 <div id="modalError" class="hidden text-sm text-red-700 mb-4 bg-red-50 p-3 rounded border border-red-200 whitespace-pre-wrap"></div>
                 <div>
                     <label for="reserverName" class="block text-sm font-medium text-blue-900 mb-1">予約者名 (必須)</label>
-                    <input type="text" id="reserverName" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：呉屋正樹／○年○組">
+                    <input type="text" id="reserverName" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：みやぎ ひとし／○年○組">
                 </div>
                 <div>
                     <label for="reservationPurpose" class="block text-sm font-medium text-blue-900 mb-1">使用目的 (任意)</label>
@@ -566,9 +566,25 @@
             });
         }
 
+        // 0時になったら自動で今日の日付に更新する機能
+        function scheduleMidnightUpdate() {
+            const now = new Date();
+            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            tomorrow.setMilliseconds(10); // 確実に翌日になるように少しマージンを取る
+            const timeUntilMidnight = tomorrow - now;
+
+            setTimeout(() => {
+                currentDate = new Date();
+                updateView();
+                // 次の日のためにタイマーを再セット
+                scheduleMidnightUpdate();
+            }, timeUntilMidnight);
+        }
+
         function init() {
             setupEventListeners();
             updateView();
+            scheduleMidnightUpdate();
 
             // クラウドデータベースの初期化
             if (firebaseConfig) {
