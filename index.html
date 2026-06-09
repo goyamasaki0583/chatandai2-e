@@ -3,628 +3,720 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>北谷第二小学校 施設予約システム</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>ワンちゃんのおへやづくり：２年生のたし算ひっ算</title>
+    <!-- Tailwind CSS (バージョンを安定版に指定して読み込み) -->
+    <script src="https://cdn.tailwindcss.com?v=3.4.1"></script>
+    <!-- Google Fonts (Kiwi Maru) -->
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        .reservation-cell.available { cursor: pointer; }
-        .reservation-cell.available:hover { background-color: #dbeafe; }
-        .reservation-cell.booked { cursor: pointer; background-color: #93c5fd; border-color: #60a5fa; color: #1e3a8a; }
-        .reservation-cell.booked:hover { background-color: #60a5fa; }
+        body {
+            font-family: 'Kiwi Maru', serif;
+        }
+        /* ふわふわ揺れるアニメーション */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-anim {
+            animation: float 2.5s ease-in-out infinite;
+        }
+        /* 跳ねるアニメーション */
+        @keyframes bounce-custom {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-25px) scale(1.15); }
+        }
+        .bounce-anim {
+            animation: bounce-custom 0.5s ease-in-out 3;
+        }
+        /* ゆらゆら喜ぶアニメーション */
+        @keyframes happy-dance {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-10deg) scale(1.1); }
+            75% { transform: rotate(10deg) scale(1.1); }
+        }
+        .happy-dance-anim {
+            animation: happy-dance 0.4s ease-in-out infinite;
+        }
+        /* 間違えたときなどのブルブル */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .shake-anim {
+            animation: shake 0.15s ease-in-out 2;
+        }
     </style>
 </head>
-<body class="bg-blue-50 h-screen flex flex-col font-sans">
-    
+<body class="bg-gradient-to-b from-amber-50 to-orange-100 min-h-screen flex flex-col items-center justify-between p-4 overflow-x-hidden">
+
     <!-- ヘッダー -->
-    <header class="bg-blue-700 shadow-sm border-b border-blue-800 px-6 py-4 flex justify-between items-center shrink-0">
-        <h1 class="text-xl font-bold text-white">北谷第二小学校 施設予約システム</h1>
-        <div class="flex items-center gap-4">
-            <label for="datePicker" class="text-sm font-medium text-blue-100">日付選択:</label>
-            <input type="date" id="datePicker" class="border border-blue-500 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-white bg-blue-600 text-white [color-scheme:dark]">
-            <button id="todayBtn" class="bg-blue-600 hover:bg-blue-500 text-white border border-blue-400 px-3 py-1.5 rounded text-sm transition-colors">今日</button>
-        </div>
+    <header class="w-full max-w-md bg-white/90 backdrop-blur shadow-md rounded-2xl p-4 text-center border-b-4 border-orange-400 mt-2">
+        <h1 class="text-2xl font-bold text-orange-700">🐶 いぬのおへやづくり 🏠</h1>
+        <p class="text-xs text-gray-600 mt-1">ひっ算にせいかいして、おへやを ごうかに しよう！</p>
     </header>
 
     <!-- メインコンテンツ -->
-    <main class="flex-grow p-4 overflow-hidden flex flex-col">
-        <div class="max-w-7xl mx-auto w-full h-full bg-white rounded-lg shadow-sm border border-blue-200 flex flex-col overflow-hidden">
-            
-            <!-- 日付表示 -->
-            <div class="p-4 bg-blue-100 border-b border-blue-200 flex justify-center items-center gap-4 shrink-0">
-                <button id="prevDayBtn" class="bg-white hover:bg-blue-50 text-blue-600 border border-blue-300 px-3 py-1.5 rounded shadow-sm text-sm font-medium transition-colors w-24 text-center">◀ 昨日</button>
-                <h2 id="currentDateDisplay" class="text-2xl font-semibold text-blue-900 w-64 text-center"></h2>
-                <button id="nextDayBtn" class="bg-white hover:bg-blue-50 text-blue-600 border border-blue-300 px-3 py-1.5 rounded shadow-sm text-sm font-medium transition-colors w-24 text-center">明日 ▶</button>
-            </div>
-
-            <!-- 予約表コンテナ -->
-            <div class="overflow-auto flex-grow relative bg-white">
-                <table class="w-full border-collapse min-w-[800px]">
-                    <thead>
-                        <tr id="facilitiesHeader">
-                            <!-- JSで生成 -->
-                        </tr>
-                    </thead>
-                    <tbody id="reservationTableBody">
-                        <!-- JSで生成 -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
-    <!-- 予約モーダル -->
-    <div id="reservationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden transform transition-all border border-blue-200">
-            <div class="px-6 py-4 border-b border-blue-100 flex justify-between items-center bg-blue-50">
-                <h3 id="modalTitle" class="text-lg font-medium text-blue-900">新規予約</h3>
-                <button type="button" class="text-blue-400 hover:text-blue-600 focus:outline-none" onclick="closeModal()">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+    <main class="w-full max-w-md flex-grow flex flex-col justify-center my-4">
+        
+        <!-- ゲーム開始前の設定画面 -->
+        <div id="start-screen" class="bg-white rounded-3xl p-6 shadow-xl border-4 border-orange-300 text-center">
+            <div class="text-7xl my-4 float-anim">🐾</div>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">もんだいのレベルを えらぼう！</h2>
+            <p class="text-sm text-gray-600 mb-6">ぜんぶで 10もん あるよ！</p>
+            <div class="space-y-4">
+                <button onclick="startGame('easy')" class="w-full bg-green-400 hover:bg-green-500 text-white font-bold py-4 px-6 rounded-2xl border-b-4 border-green-600 active:border-b-0 active:translate-y-1 transition-all text-lg text-shadow">
+                    🟢 くりあがり なし (やさしい)
+                </button>
+                <button onclick="startGame('hard')" class="w-full bg-orange-400 hover:bg-orange-500 text-white font-bold py-4 px-6 rounded-2xl border-b-4 border-orange-600 active:border-b-0 active:translate-y-1 transition-all text-lg text-shadow">
+                    🟠 くりあがり あり (むずかしい)
+                </button>
+                <button onclick="startGame('random')" class="w-full bg-pink-400 hover:bg-pink-500 text-white font-bold py-4 px-6 rounded-2xl border-b-4 border-pink-600 active:border-b-0 active:translate-y-1 transition-all text-lg text-shadow">
+                    ⚡ ランダム (まぜまぜ)
                 </button>
             </div>
-            <div class="px-6 py-4 space-y-4">
-                <div>
-                    <p id="modalInfo" class="text-sm text-blue-800 mb-4 bg-blue-50 p-2 rounded border border-blue-100"></p>
+            <p class="text-xs text-gray-500 mt-6">※ 3けた（100の くらい）に なる もんだいは でないよ！</p>
+        </div>
+
+        <!-- メインゲーム画面 -->
+        <div id="game-screen" class="hidden flex flex-col gap-4">
+            
+            <!-- ワンちゃんのお部屋表示エリア -->
+            <div class="bg-white/90 rounded-2xl p-4 shadow-md border-2 border-orange-200">
+                <!-- 進行状況 -->
+                <div class="flex justify-between items-center text-sm font-bold text-gray-700 mb-2">
+                    <span id="question-number" class="bg-orange-100 text-orange-800 px-3 py-1 rounded-full">だい 1 / 10 もん</span>
+                    <span id="score-display" class="text-orange-600 font-bold">ゲットした家具: 0こ</span>
                 </div>
-                <div id="modalError" class="hidden text-sm text-red-700 mb-4 bg-red-50 p-3 rounded border border-red-200 whitespace-pre-wrap"></div>
-                <div>
-                    <label for="reserverName" class="block text-sm font-medium text-blue-900 mb-1">予約者名 (必須)</label>
-                    <input type="text" id="reserverName" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例：みやぎ ひとし／○年○組">
-                </div>
-                <div>
-                    <label for="reservationPurpose" class="block text-sm font-medium text-blue-900 mb-1">使用目的 (任意)</label>
-                    <input type="text" id="reservationPurpose" class="w-full border border-blue-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例: 職員会議 / クラブ活動">
-                </div>
-                <div id="repeatContainer" class="flex items-center pt-2">
-                    <input id="repeatFourWeeks" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-blue-300 rounded cursor-pointer">
-                    <label for="repeatFourWeeks" class="ml-2 block text-sm font-medium text-blue-900 cursor-pointer">
-                        ４週間先まで同じ曜日・時間で予約する
-                    </label>
+                
+                <!-- お部屋グラフィック -->
+                <div class="relative w-full h-64 bg-amber-50 rounded-xl border-2 border-amber-300 overflow-hidden shadow-inner flex items-end justify-center pb-2">
+                    <!-- 壁と床のグラデーション境界 -->
+                    <div class="absolute inset-x-0 bottom-0 h-1/4 bg-orange-100 border-t-2 border-orange-200"></div>
+                    
+                    <!-- 巨大化家具アイテム10個 -->
+                    <div id="item-1" class="absolute bottom-2 left-2 text-7xl opacity-10 transition-all duration-500 transform scale-75" title="ふかふかベッド">🛏️</div>
+                    <div id="item-2" class="absolute bottom-1 left-28 text-5xl opacity-10 transition-all duration-500 transform scale-75" title="おいしいほね">🦴</div>
+                    <div id="item-3" class="absolute bottom-1 right-28 text-5xl opacity-10 transition-all duration-500 transform scale-75" title="ごはんセット">🥣</div>
+                    <div id="item-4" class="absolute bottom-2 right-2 text-6xl opacity-10 transition-all duration-500 transform scale-75" title="おもちゃのくま">🧸</div>
+                    <div id="item-5" class="absolute top-2 left-4 text-7xl opacity-10 transition-all duration-500 transform scale-75" title="きれいなまど">🪟</div>
+                    <div id="item-6" class="absolute bottom-1 left-48 text-5xl opacity-10 transition-all duration-500 transform scale-75" title="おもちゃのボール">🎾</div>
+                    <div id="item-7" class="absolute bottom-16 left-2 text-6xl opacity-10 transition-all duration-500 transform scale-75" title="みどりのしょくぶつ">🪴</div>
+                    <div id="item-8" class="absolute bottom-16 right-2 text-6xl opacity-10 transition-all duration-500 transform scale-75" title="すてきなソファ">🛋️</div>
+                    <div id="item-9" class="absolute top-2 right-4 text-6xl opacity-10 transition-all duration-500 transform scale-75" title="かべのえ">🖼️</div>
+                    <div id="item-10" class="absolute top-1 left-44 text-6xl opacity-10 transition-all duration-500 transform scale-75" title="カラフルバルーン">🎈</div>
+
+                    <!-- エフェクトテキスト -->
+                    <div id="room-effect" class="absolute inset-0 pointer-events-none flex items-center justify-center text-3xl font-bold hidden z-20"></div>
+
+                    <!-- 主役のワンちゃん -->
+                    <div id="dog-container" class="relative z-10 flex flex-col items-center mb-1">
+                        <!-- 吹き出しヒント -->
+                        <div id="dog-balloon" class="absolute bottom-20 bg-white border-2 border-orange-400 text-gray-800 text-xs rounded-xl p-2.5 shadow-md w-44 text-center hidden after:content-[''] after:absolute after:top-full after:left-1/2 after:-ml-2 after:border-8 after:border-transparent after:border-t-white before:content-[''] before:absolute before:top-full before:left-1/2 before:-ml-2.5 before:border-[10px] before:border-transparent before:border-t-orange-400">
+                            <span id="balloon-text">まずは 〇＋〇をしよう！</span>
+                        </div>
+                        <div id="dog-emoji" class="text-7xl float-anim transition-transform duration-300">🐶</div>
+                        <span id="dog-status" class="text-xs font-bold bg-orange-100 text-orange-700 px-2.5 py-0.5 rounded-full mt-1 shadow-sm">ココアちゃん</span>
+                    </div>
                 </div>
             </div>
-            <div class="px-6 py-4 bg-blue-50 flex justify-between items-center border-t border-blue-100">
-                <button type="button" id="cancelReservationBtn" class="text-red-500 hover:text-red-700 text-sm font-medium hidden" onclick="cancelReservation()">予約を取り消す</button>
-                <div class="flex gap-2 ml-auto">
-                    <button type="button" class="px-4 py-2 bg-white border border-blue-300 rounded-md text-sm font-medium text-blue-700 hover:bg-blue-50 focus:outline-none" onclick="closeModal()">キャンセル</button>
-                    <button type="button" id="saveReservationBtn" class="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none" onclick="saveReservation()">予約する</button>
+
+            <!-- 【通常・復習】ひっ算入力ボード -->
+            <div id="calc-board" class="bg-yellow-50 rounded-3xl p-6 shadow-xl border-4 border-yellow-400 relative">
+                
+                <!-- ひっ算エリア -->
+                <div class="flex flex-col items-center my-2">
+                    <div class="relative w-48 text-right font-mono text-4xl font-bold tracking-widest text-gray-800">
+                        
+                        <!-- くりあがりメモ (10の位の上) -->
+                        <div class="flex justify-end w-full pr-14 mb-1 h-8">
+                            <input type="text" id="carry-input" maxlength="1" placeholder=" "
+                                class="w-8 h-8 text-center text-sm bg-yellow-200 border-2 border-dashed border-yellow-500 rounded text-red-500 focus:outline-none focus:bg-yellow-300" 
+                                title="くりあがりのメモ（まちがってもせいかいにひびきません）">
+                        </div>
+
+                        <!-- 1つ目の数 -->
+                        <div class="flex justify-end pr-4 mb-2">
+                            <span id="num1-10" class="w-8 text-center">3</span>
+                            <span id="num1-1" class="w-8 text-center">5</span>
+                        </div>
+
+                        <!-- 演算子と2つ目の数 -->
+                        <div class="flex justify-between items-center pr-4 mb-2 border-b-4 border-gray-800 pb-2">
+                            <span class="text-3xl font-bold text-orange-600 pl-2">＋</span>
+                            <div class="flex">
+                                <span id="num2-10" class="w-8 text-center">2</span>
+                                <span id="num2-1" class="w-8 text-center">4</span>
+                            </div>
+                        </div>
+
+                        <!-- 回答入力エリア (1の位から入力するフォーカス順) -->
+                        <div class="flex justify-end pr-4 mt-3">
+                            <!-- 10の位 -->
+                            <input type="number" id="ans-10" min="0" max="9" pattern="[0-9]*" inputmode="numeric"
+                                class="w-10 h-14 text-center border-2 border-orange-400 rounded-lg bg-white focus:ring-4 focus:ring-orange-300 focus:outline-none focus:border-orange-600 text-4xl"
+                                onkeyup="moveFocus('ans-10', 'submit-btn')">
+                            <!-- 1の位 (ここが一番最初にアクティブになります) -->
+                            <input type="number" id="ans-1" min="0" max="9" pattern="[0-9]*" inputmode="numeric"
+                                class="w-10 h-14 text-center border-2 border-orange-400 rounded-lg bg-white focus:ring-4 focus:ring-orange-300 focus:outline-none focus:border-orange-600 text-4xl ml-2"
+                                onkeyup="moveFocus('ans-1', 'ans-10')">
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 案内・ヒント誘導 -->
+                <div class="text-center mt-4">
+                    <p id="calc-hint-msg" class="text-xs text-gray-500">※ くりあがりがあるときは、ちいさいしかくに 「1」 をかくとわかりやすいよ！</p>
+                </div>
+
+                <!-- 判定アクション -->
+                <div class="mt-6">
+                    <button id="submit-btn" onclick="checkAnswer()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-orange-700 active:border-b-0 active:translate-y-1 transition-all text-lg">
+                        できた！あわせる
+                    </button>
                 </div>
             </div>
+
+            <!-- 【全問正解限定】文章問題エリア -->
+            <div id="word-problem-board" class="bg-emerald-50 rounded-3xl p-6 shadow-xl border-4 border-emerald-400 relative hidden">
+                <div class="bg-white rounded-2xl p-4 border-2 border-emerald-200 mb-4 shadow-sm">
+                    <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full mb-2 inline-block">✨ スペシャルチャレンジ ✨</span>
+                    <p id="word-problem-text" class="text-base font-bold text-gray-800 leading-relaxed">
+                        ここに文章問題が表示されます。
+                    </p>
+                </div>
+
+                <div class="flex flex-col items-center gap-3">
+                    <label class="text-sm font-bold text-gray-600">こたえ (数字だけ にゅうりょくしてね)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="word-ans" min="1" max="99" pattern="[0-9]*" inputmode="numeric"
+                            class="w-24 h-14 text-center border-2 border-emerald-400 rounded-xl bg-white focus:ring-4 focus:ring-emerald-300 focus:outline-none text-3xl font-bold font-mono">
+                        <span class="text-xl font-bold text-gray-700">にん (または こ/ひき)</span>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button onclick="checkWordAnswer()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1 transition-all text-lg">
+                        こたえあわせをする！
+                    </button>
+                </div>
+            </div>
+
+            <!-- 戻るボタン -->
+            <button onclick="returnToMenu()" class="text-center text-sm text-gray-600 hover:text-gray-900 underline">
+                もどる
+            </button>
+        </div>
+
+        <!-- 結果画面 -->
+        <div id="result-screen" class="hidden bg-white rounded-3xl p-6 shadow-xl border-4 border-orange-400 text-center">
+            <h2 class="text-2xl font-bold text-orange-700 mb-1" id="result-title">おへやが かんせいしたよ！</h2>
+            <p class="text-sm text-gray-600 mb-4" id="result-score">10この家具をゲット！</p>
+            
+            <!-- 完成したお部屋のミニチュア -->
+            <div class="relative w-full h-52 bg-amber-50 rounded-xl border-2 border-amber-300 overflow-hidden shadow-inner flex items-end justify-center pb-2 mb-6">
+                <div class="absolute inset-x-0 bottom-0 h-1/3 bg-orange-100 border-t-2 border-orange-200"></div>
+                
+                <!-- 結果用アイテム -->
+                <div id="res-item-1" class="absolute bottom-2 left-2 text-6xl opacity-10">🛏️</div>
+                <div id="res-item-2" class="absolute bottom-1 left-24 text-4xl opacity-10">🦴</div>
+                <div id="res-item-3" class="absolute bottom-1 right-24 text-4xl opacity-10">🥣</div>
+                <div id="res-item-4" class="absolute bottom-2 right-2 text-5xl opacity-10">🧸</div>
+                <div id="res-item-5" class="absolute top-2 left-4 text-6xl opacity-10">🪟</div>
+                <div id="res-item-6" class="absolute bottom-1 left-40 text-4xl opacity-10">🎾</div>
+                <div id="res-item-7" class="absolute bottom-14 left-2 text-5xl opacity-10">🪴</div>
+                <div id="res-item-8" class="absolute bottom-14 right-2 text-5xl opacity-10">🛋️</div>
+                <div id="res-item-9" class="absolute top-2 right-4 text-5xl opacity-10">🖼️</div>
+                <div id="res-item-10" class="absolute top-1 left-36 text-5xl opacity-10">🎈</div>
+
+                <div class="relative z-10 flex flex-col items-center mb-1">
+                    <div id="res-dog-emoji" class="text-6xl float-anim">🐶</div>
+                    <span class="text-xs font-bold bg-orange-100 text-orange-700 px-2.5 py-0.5 rounded-full mt-1">ココアちゃん</span>
+                </div>
+            </div>
+
+            <p id="result-message" class="text-gray-700 mb-6 font-bold whitespace-pre-line"></p>
+            
+            <button onclick="returnToMenu()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-2xl border-b-4 border-orange-700 active:border-b-0 active:translate-y-1 transition-all text-lg">
+                もういちど あそぶ
+            </button>
+        </div>
+
+    </main>
+
+    <!-- メッセージボックス (カスタムアラート) -->
+    <div id="msg-box" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center border-4 border-orange-500 shadow-2xl">
+            <div id="msg-emoji" class="text-5xl mb-2">💡</div>
+            <p id="msg-text" class="text-lg font-bold text-gray-800 mb-4 whitespace-pre-line"></p>
+            <button onclick="closeMsgBox()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-xl">
+                OK
+            </button>
         </div>
     </div>
 
-    <!-- トースト通知 -->
-    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-3 rounded shadow-lg transform transition-transform duration-300 translate-y-full opacity-0 flex items-center gap-2 z-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-        </svg>
-        <span id="toastMessage"></span>
-    </div>
+    <!-- フッター -->
+    <footer class="text-center text-xs text-orange-900/60 pb-2">
+        &copy; ワンちゃんのおへやづくり 2ねんせい 算数ゲーム
+    </footer>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- スクリプト -->
+    <script>
+        "use strict"; // エラーを防ぐための厳格モード
 
-        // クラウドデータベース接続用の設定
-        const firebaseConfig = {
-            apiKey: "AIzaSyDN7mO43wA4O8q1pzFniIZ5AiDx_bzr1Zk",
-            authDomain: "fir-1e66a.firebaseapp.com",
-            projectId: "fir-1e66a",
-            storageBucket: "fir-1e66a.firebasestorage.app",
-            messagingSenderId: "613804608794",
-            appId: "1:613804608794:web:c226daa35289a5de61b0a3"
+        // ゲームステート
+        let currentMode = 'easy';
+        let currentQuestion = 1;
+        const totalQuestions = 10;
+        let score = 0;
+        let num1 = 0;
+        let num2 = 0;
+        let correctAnswer = 0;
+
+        // まちがえた問題を記録するリスト
+        let incorrectQuestions = [];
+        // やりなおし用のリスト（最大5問）
+        let reviewQuestions = [];
+        let reviewIndex = 0;
+        let isReviewMode = false;
+
+        // 文章問題のステート
+        let isWordProblemMode = false;
+        let wordProblemAnswer = 0;
+
+        // 巨大家具の名称
+        const itemNames = {
+            1: '🛏️ ふかふかベッド',
+            2: '🦴 おいしいおやつ',
+            3: '🥣 なみなみごはん',
+            4: '🧸 クマのぬいぐるみ',
+            5: '🪟 あかるいまど',
+            6: '🎾 はねるボール',
+            7: '🪴 みどりのプランター',
+            8: '🛋️ ゆったりソファ',
+            9: '🖼️ かべのおしゃれな絵',
+            10: '🎈 カラフルなふうせん'
         };
-        // データベースに保存する際のグループ名としてappIdを使用します
-        const appId = "chatan-reservation-app";
-        
-        let db = null;
-        let auth = null;
-        let currentUser = null;
 
-        const timeSlots = [
-            "１校時", "２校時", "３校時", "４校時", "給食中休み", "５校時", "６校時",
-            "15時30分～16時30分", "16時30分～17時30分", "17時30分～18時30分", "18時30分～19時30分"
-        ];
-        
-        const facilities = [
-            "第一会議室", "第二会議室", "算数教室", "PC室", "１階多目", "３階多目",
-            "体育館", "家庭科室"
-        ];
-
-        let reservations = {};
-        let currentDate = new Date();
-        
-        let currentSelectedCells = [];
-        let currentEditingDate = '';
-        
-        let isDragging = false;
-        let dragStart = null;
-        let dragEnd = null;
-        let currentIsEditMode = false;
-
-        const datePicker = document.getElementById('datePicker');
-        const todayBtn = document.getElementById('todayBtn');
-        const prevDayBtn = document.getElementById('prevDayBtn');
-        const nextDayBtn = document.getElementById('nextDayBtn');
-        const currentDateDisplay = document.getElementById('currentDateDisplay');
-        const facilitiesHeader = document.getElementById('facilitiesHeader');
-        const reservationTableBody = document.getElementById('reservationTableBody');
-        
-        const reservationModal = document.getElementById('reservationModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalInfo = document.getElementById('modalInfo');
-        const modalError = document.getElementById('modalError');
-        const reserverNameInput = document.getElementById('reserverName');
-        const reservationPurposeInput = document.getElementById('reservationPurpose');
-        const repeatContainer = document.getElementById('repeatContainer');
-        const repeatFourWeeksCheckbox = document.getElementById('repeatFourWeeks');
-        const saveReservationBtn = document.getElementById('saveReservationBtn');
-        const cancelReservationBtn = document.getElementById('cancelReservationBtn');
-        const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toastMessage');
-
-        // HTMLからの呼び出し（onclick等）に対応するためグローバルに登録
-        window.closeModal = closeModal;
-        window.saveReservation = saveReservation;
-        window.cancelReservation = cancelReservation;
-
-        function formatDateForInput(date) {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const d = String(date.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+        // 吹き出し・ヒント表示関数
+        function setDogBalloon(text, show = true) {
+            const balloon = document.getElementById('dog-balloon');
+            const balloonText = document.getElementById('balloon-text');
+            if (show) {
+                balloonText.innerText = text;
+                balloon.classList.remove('hidden');
+            } else {
+                balloon.classList.add('hidden');
+            }
         }
 
-        function formatDateForDisplay(date) {
-            const days = ['日', '月', '火', '水', '木', '金', '土'];
-            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 (${days[date.getDay()]})`;
+        // カスタムメッセージボックス
+        function showMsg(text, emoji = '💡') {
+            document.getElementById('msg-text').innerText = text;
+            document.getElementById('msg-emoji').innerText = emoji;
+            document.getElementById('msg-box').classList.remove('hidden');
         }
 
-        function showToast(message) {
-            toastMessage.textContent = message;
-            toast.classList.remove('translate-y-full', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-full', 'opacity-0');
-            }, 3000);
+        function closeMsgBox() {
+            document.getElementById('msg-box').classList.add('hidden');
         }
 
-        function renderTableHeaders() {
-            facilitiesHeader.innerHTML = '';
+        // 入力フォーカスの移動
+        function moveFocus(currentId, nextId) {
+            const currentElement = document.getElementById(currentId);
+            if (currentElement.value.length >= 1) {
+                const nextElement = document.getElementById(nextId);
+                if (nextElement) {
+                    nextElement.focus();
+                }
+            }
+        }
+
+        // ゲームスタート
+        window.startGame = function(mode) {
+            currentMode = mode;
+            currentQuestion = 1;
+            score = 0;
+            incorrectQuestions = [];
+            reviewQuestions = [];
+            isReviewMode = false;
+            isWordProblemMode = false;
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+
+            // レイアウト切り替え
+            document.getElementById('calc-board').classList.remove('hidden');
+            document.getElementById('word-problem-board').classList.add('hidden');
+
+            setDogBalloon('', false);
+            resetRoomVisuals();
+            generateQuestion();
+        }
+
+        // 部屋のビジュアルをリセット
+        function resetRoomVisuals() {
+            for (let i = 1; i <= 10; i++) {
+                const el = document.getElementById(`item-${i}`);
+                if (el) {
+                    el.classList.add('opacity-10', 'scale-75');
+                    el.classList.remove('opacity-100', 'scale-100');
+                }
+            }
+            document.getElementById('dog-emoji').innerText = '🐶';
+            document.getElementById('dog-emoji').className = 'text-7xl float-anim';
+            document.getElementById('score-display').innerText = `ゲットした家具: 0こ`;
+        }
+
+        // 家具のアンロック演出 (透明度10% ➔ 100%へ)
+        function unlockItem(itemIndex) {
+            const el = document.getElementById(`item-${itemIndex}`);
+            if (el) {
+                el.classList.remove('opacity-10', 'scale-75');
+                el.classList.add('opacity-100', 'scale-100');
+            }
+            document.getElementById('score-display').innerText = `ゲットした家具: ${score}こ`;
+        }
+
+        // 問題の自動生成 (合計が99以下)
+        function generateQuestion() {
+            document.getElementById('ans-10').value = '';
+            document.getElementById('ans-1').value = '';
+            document.getElementById('carry-input').value = '';
             
-            const emptyTh = document.createElement('th');
-            emptyTh.className = 'border border-blue-200 p-3 w-32 bg-blue-100 sticky left-0 top-0 z-40 shadow-[1px_1px_0_0_#bfdbfe]'; 
-            facilitiesHeader.appendChild(emptyTh);
+            // 💡 1の位にフォーカスをあてる
+            const ans1 = document.getElementById('ans-1');
+            if(ans1) ans1.focus();
 
-            facilities.forEach(facility => {
-                const th = document.createElement('th');
-                th.className = 'border border-blue-200 p-3 text-sm font-semibold text-blue-900 min-w-[120px] sticky top-0 z-30 bg-blue-100 shadow-[0_1px_0_0_#bfdbfe]'; 
-                th.textContent = facility;
-                facilitiesHeader.appendChild(th);
-            });
+            // ワンちゃんの顔をニュートラルに戻す
+            document.getElementById('dog-emoji').innerText = '🐶';
+            setDogBalloon('', false);
+
+            document.getElementById('question-number').innerText = `だい ${currentQuestion} / ${totalQuestions} もん`;
+
+            let n1 = 0;
+            let n2 = 0;
+            let sum = 0;
+
+            let modeToApply = currentMode;
+            if (currentMode === 'random') {
+                modeToApply = Math.random() > 0.5 ? 'easy' : 'hard';
+            }
+
+            let attempts = 0;
+            while (attempts < 100) {
+                n1 = Math.floor(Math.random() * 80) + 10; // 10〜89
+                n2 = Math.floor(Math.random() * 80) + 9;  // 9〜89
+
+                sum = n1 + n2;
+
+                if (sum > 99) {
+                    continue; 
+                }
+
+                const n1_ones = n1 % 10;
+                const n2_ones = n2 % 10;
+                const isCarry = (n1_ones + n2_ones) >= 10;
+
+                if (modeToApply === 'easy' && !isCarry) {
+                    break;
+                } else if (modeToApply === 'hard' && isCarry) {
+                    break;
+                }
+                attempts++;
+            }
+
+            if (sum > 99 || sum < 10) {
+                n1 = 34; n2 = 25; sum = 59;
+            }
+
+            num1 = n1;
+            num2 = n2;
+            correctAnswer = sum;
+
+            // 盤面への反映
+            const n1_10 = Math.floor(n1 / 10);
+            const n1_1 = n1 % 10;
+            const n2_10 = Math.floor(n2 / 10);
+            const n2_1 = n2 % 10;
+
+            document.getElementById('num1-10').innerText = n1_10 > 0 ? n1_10 : '';
+            document.getElementById('num1-1').innerText = n1_1;
+            document.getElementById('num2-10').innerText = n2_10 > 0 ? n2_10 : '';
+            document.getElementById('num2-1').innerText = n2_1;
         }
 
-        function renderTableBody(dateStr) {
-            reservationTableBody.innerHTML = '';
-            const dailyReservations = reservations[dateStr] || {};
+        // やりなおし問題のロード
+        function generateReviewQuestion(q) {
+            document.getElementById('ans-10').value = '';
+            document.getElementById('ans-1').value = '';
+            document.getElementById('carry-input').value = '';
+            document.getElementById('ans-1').focus();
 
-            timeSlots.forEach((slot, timeIdx) => {
-                const tr = document.createElement('tr');
+            num1 = q.n1;
+            num2 = q.n2;
+            correctAnswer = q.ans;
+
+            const n1_10 = Math.floor(num1 / 10);
+            const n1_1 = num1 % 10;
+            const n2_10 = Math.floor(num2 / 10);
+            const n2_1 = num2 % 10;
+
+            document.getElementById('num1-10').innerText = n1_10 > 0 ? n1_10 : '';
+            document.getElementById('num1-1').innerText = n1_1;
+            document.getElementById('num2-10').innerText = n2_10 > 0 ? n2_10 : '';
+            document.getElementById('num2-1').innerText = n2_1;
+
+            // コメントの自動生成
+            const hintText = `まずは 1のくらいの 「${n1_1} ＋ ${n2_1}」を しよう！`;
+            setDogBalloon(hintText, true);
+        }
+
+        // 回答判定
+        window.checkAnswer = function() {
+            const ans10Val = document.getElementById('ans-10').value;
+            const ans1Val = document.getElementById('ans-1').value;
+
+            if (ans1Val === '') {
+                showMsg('1の くらいを にゅうりょくしてね！', '✏️');
+                return;
+            }
+
+            const tens = ans10Val === '' ? 0 : parseInt(ans10Val, 10);
+            const ones = parseInt(ans1Val, 10);
+            const userAnswer = (tens * 10) + ones;
+
+            const dogContainer = document.getElementById('dog-container');
+            const dogEmoji = document.getElementById('dog-emoji');
+            const effect = document.getElementById('room-effect');
+
+            if (userAnswer === correctAnswer) {
+                // 正解！
+                dogEmoji.innerText = '😍';
+                dogContainer.classList.add('bounce-anim');
                 
-                const th = document.createElement('th');
-                th.className = 'border border-blue-200 p-3 text-sm font-medium text-blue-800 bg-blue-50 sticky left-0 z-20 shadow-[1px_0_0_0_#bfdbfe] whitespace-nowrap'; 
-                th.textContent = slot;
-                tr.appendChild(th);
+                effect.innerText = isReviewMode ? '✨バッチリ！✨' : '✨家具ゲット！✨';
+                effect.className = "absolute inset-0 pointer-events-none flex items-center justify-center text-3xl font-bold text-orange-600 bg-orange-100/40 z-20";
+                effect.classList.remove('hidden');
 
-                facilities.forEach((facility, facIdx) => {
-                    const td = document.createElement('td');
-                    const cellKey = `${timeIdx}_${facIdx}`;
-                    const reservation = dailyReservations[cellKey];
-
-                    td.dataset.timeIdx = timeIdx;
-                    td.dataset.facIdx = facIdx;
-                    td.className = 'border border-blue-200 p-2 text-sm text-center h-16 reservation-cell relative group select-none ';
+                if (!isReviewMode) {
+                    score++;
+                    unlockItem(score);
+                }
+                
+                setTimeout(() => {
+                    dogContainer.classList.remove('bounce-anim');
+                    effect.classList.add('hidden');
                     
-                    if (reservation) {
-                        td.classList.add('booked');
-                        
-                        const nameDiv = document.createElement('div');
-                        nameDiv.className = 'font-bold truncate px-1';
-                        nameDiv.textContent = reservation.name;
-                        td.appendChild(nameDiv);
-
-                        if (reservation.purpose) {
-                            const purposeDiv = document.createElement('div');
-                            purposeDiv.className = 'text-xs truncate px-1 opacity-80';
-                            purposeDiv.textContent = reservation.purpose;
-                            td.appendChild(purposeDiv);
-                        }
+                    if (isReviewMode) {
+                        showMsg('すごい！かんぺきな ひっ算に なったね！', '🌟');
+                        nextStep();
                     } else {
-                        td.classList.add('available');
-                        const addIcon = document.createElement('div');
-                        addIcon.className = 'absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity';
-                        addIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>';
-                        td.appendChild(addIcon);
+                        const unlockedName = itemNames[score];
+                        showMsg(`せいかい！ 🎉\nおへやに 「${unlockedName}」 が ふえたよ！`, '🎁');
+                        nextStep();
                     }
+                }, 1200);
 
-                    td.addEventListener('mousedown', (e) => handleMouseDown(e, dateStr, timeIdx, facIdx, reservation));
-                    td.addEventListener('mouseenter', () => handleMouseEnter(dateStr, timeIdx, facIdx));
+            } else {
+                // 不正解
+                dogEmoji.innerText = '🥺';
+                
+                // もし通常モードなら、やりなおしリストに追加
+                if (!isReviewMode) {
+                    const alreadySaved = incorrectQuestions.some(q => q.n1 === num1 && q.n2 === num2);
+                    if (!alreadySaved) {
+                        incorrectQuestions.push({ n1: num1, n2: num2, ans: correctAnswer });
+                    }
+                }
+
+                // ゆらす
+                dogContainer.style.animation = 'shake 0.3s ease-in-out 2';
+
+                setTimeout(() => {
+                    dogContainer.style.animation = '';
                     
-                    tr.appendChild(td);
-                });
-
-                reservationTableBody.appendChild(tr);
-            });
+                    const correctOnes = (num1 % 10) + (num2 % 10);
+                    let advice = `おしい！もういちど 計算してみよう。\n\n`;
+                    if (correctOnes >= 10) {
+                        advice += `【ヒント💡】\n1のくらいの 「${num1 % 10} ＋ ${num2 % 10} ＝ ${correctOnes}」 は、10をこえるから、10のくらいに 「1」 を くりあげるよ！`;
+                    } else {
+                        advice += `【ヒント💡】\n1のくらいは 「${num1 % 10} ＋ ${num2 % 10}」。\n10のくらいは 「${Math.floor(num1/10)} ＋ ${Math.floor(num2/10)}」 をたしてね。`;
+                    }
+                    showMsg(advice, '🐶');
+                }, 600);
+            }
         }
 
-        function clearSelectionUI() {
-            document.querySelectorAll('.reservation-cell').forEach(cell => {
-                cell.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-200', 'z-10');
-                if (!cell.classList.contains('booked')) {
-                    cell.classList.add('available');
+        // 文章問題の開始 (全問正解者限定)
+        function startWordProblem() {
+            isWordProblemMode = true;
+            document.getElementById('calc-board').classList.add('hidden');
+            document.getElementById('word-problem-board').classList.remove('hidden');
+            document.getElementById('question-number').innerText = `✨ さいごの とくべつもんだい ✨`;
+            
+            const problems = [
+                {
+                    text: "ココアちゃんは、きのう ほねを 36こ ひろいました。きょうは ほねを 25こ ひろいました。あわせて なんこ ひろったかな？",
+                    n1: 36, n2: 25, ans: 61, unit: "こ"
+                },
+                {
+                    text: "いぬのひろばに 白いワンちゃんが 28ひき、茶いろいワンちゃんが 19ひき あそんでいます。ぜんぶで なんびき いるかな？",
+                    n1: 28, n2: 19, ans: 47, unit: "ひき"
+                },
+                {
+                    text: "ココアちゃんは、おさんぽで てんともうしを 14ひき、ちょうちょを 27ひき みつけました。あわせて なんびき みつけたかな？",
+                    n1: 14, n2: 27, ans: 41, unit: "ひき"
                 }
-            });
+            ];
+
+            const selected = problems[Math.floor(Math.random() * problems.length)];
+            document.getElementById('word-problem-text').innerText = selected.text;
+            wordProblemAnswer = selected.ans;
+            document.getElementById('word-ans').value = '';
+            document.getElementById('word-ans').focus();
+
+            setDogBalloon('さいごの むずかしい もんだいだよ！がんばって！', true);
         }
 
-        function updateSelectionUI(dateStr) {
-            clearSelectionUI();
-            currentSelectedCells = [];
+        // 文章問題の判定
+        window.checkWordAnswer = function() {
+            const userAnsVal = document.getElementById('word-ans').value;
+            if (userAnsVal === '') {
+                showMsg('こたえを にゅうりょくしてね！', '✏️');
+                return;
+            }
 
-            if (!dragStart || !dragEnd) return;
+            const userAns = parseInt(userAnsVal, 10);
+            const dogEmoji = document.getElementById('dog-emoji');
+            const dogContainer = document.getElementById('dog-container');
 
-            const minTime = Math.min(dragStart.timeIdx, dragEnd.timeIdx);
-            const maxTime = Math.max(dragStart.timeIdx, dragEnd.timeIdx);
-            const minFac = Math.min(dragStart.facIdx, dragEnd.facIdx);
-            const maxFac = Math.max(dragStart.facIdx, dragEnd.facIdx);
+            if (userAns === wordProblemAnswer) {
+                // 超大喜び
+                dogEmoji.innerText = '💖🐶💖';
+                dogEmoji.className = 'text-7xl happy-dance-anim';
+                
+                showMsg('すごーーーい！大せいかい！！ 🎉✨\nワンちゃんが うれしくて、ダンスをして よろこんでいるよ！', '🎉');
+                
+                setTimeout(() => {
+                    endGame(true);
+                }, 2000);
+            } else {
+                dogEmoji.innerText = '🥺';
+                showMsg('おしい！もういちど よくよんで 計算してみよう。', '💡');
+            }
+        }
 
-            const dailyReservations = reservations[dateStr] || {};
+        // やりなおし（復習）フェーズの開始
+        function startReviewPhase() {
+            isReviewMode = true;
+            reviewIndex = 0;
 
-            for (let t = minTime; t <= maxTime; t++) {
-                for (let f = minFac; f <= maxFac; f++) {
-                    const cellKey = `${t}_${f}`;
-                    if (!dailyReservations[cellKey]) {
-                        currentSelectedCells.push({ timeIdx: t, facIdx: f });
-                        const td = document.querySelector(`td[data-time-idx="${t}"][data-fac-idx="${f}"]`);
-                        if (td) {
-                            td.classList.remove('available');
-                            td.classList.add('ring-2', 'ring-blue-500', 'bg-blue-200', 'z-10');
-                        }
+            const shuffled = [...incorrectQuestions].sort(() => 0.5 - Math.random());
+            reviewQuestions = shuffled.slice(0, 5);
+
+            showMsg(`10問おわったよ！\nまちがえた ${reviewQuestions.length}問 に もういちど チャレンジしてみよう！`, '🐾');
+
+            loadReviewQuestion();
+        }
+
+        function loadReviewQuestion() {
+            document.getElementById('question-number').innerText = `やりなおし ${reviewIndex + 1} / ${reviewQuestions.length} もん`;
+            generateReviewQuestion(reviewQuestions[reviewIndex]);
+        }
+
+        // 次のステップ
+        function nextStep() {
+            if (isReviewMode) {
+                reviewIndex++;
+                if (reviewIndex < reviewQuestions.length) {
+                    loadReviewQuestion();
+                } else {
+                    endGame(false);
+                }
+                return;
+            }
+
+            currentQuestion++;
+            if (currentQuestion > totalQuestions) {
+                if (score === 10) {
+                    startWordProblem();
+                } else {
+                    if (incorrectQuestions.length > 0) {
+                        startReviewPhase();
+                    } else {
+                        endGame(false);
+                    }
+                }
+            } else {
+                generateQuestion();
+            }
+        }
+
+        // ゲームの終了画面
+        function endGame(clearedWordProblem = false) {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            const resDog = document.getElementById('res-dog-emoji');
+            resDog.className = 'text-6xl float-anim';
+
+            document.getElementById('result-score').innerText = `ゲットした家具: ${score} / 10こ`;
+
+            // 結果ミニチュアのビジュアル設定
+            for (let i = 1; i <= 10; i++) {
+                const resEl = document.getElementById(`res-item-${i}`);
+                if (resEl) {
+                    if (i <= score) {
+                        resEl.classList.remove('opacity-10');
+                        resEl.classList.add('opacity-100');
+                    } else {
+                        resEl.classList.remove('opacity-100');
+                        resEl.classList.add('opacity-10');
                     }
                 }
             }
-        }
 
-        function handleMouseDown(e, dateStr, timeIdx, facIdx, reservation) {
-            if (e.button !== 0) return; 
+            const title = document.getElementById('result-title');
+            const msg = document.getElementById('result-message');
 
-            currentEditingDate = dateStr;
-
-            if (reservation) {
-                openModal(dateStr, [{ timeIdx, facIdx }], reservation);
-                return;
-            }
-
-            isDragging = true;
-            dragStart = { timeIdx, facIdx };
-            dragEnd = { timeIdx, facIdx };
-            updateSelectionUI(dateStr);
-            e.preventDefault(); 
-        }
-
-        function handleMouseEnter(dateStr, timeIdx, facIdx) {
-            if (!isDragging) return;
-            if (currentEditingDate !== dateStr) return;
-            
-            dragEnd = { timeIdx, facIdx };
-            updateSelectionUI(dateStr);
-        }
-
-        function openModal(dateStr, cells, existingReservation) {
-            currentSelectedCells = cells;
-            currentEditingDate = dateStr;
-            
-            const displayDate = `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月${currentDate.getDate()}日`;
-            
-            if (cells.length === 1) {
-                const { timeIdx, facIdx } = cells[0];
-                modalInfo.textContent = `${displayDate} | ${timeSlots[timeIdx]} | ${facilities[facIdx]}`;
+            if (clearedWordProblem) {
+                title.innerText = "👑 ワンちゃんマスター誕生！ 👑";
+                resDog.innerText = '💖🐶💖';
+                resDog.className = 'text-6xl happy-dance-anim';
+                msg.innerText = "すごい！10問のひっ算をぜんぶ正解して、おまけのむずかしい文章問題も大正解！\nワンちゃんは今、あなたのおかげで世界一しあわせです！";
+            } else if (score === 10) {
+                title.innerText = "👑 かんぺき！超デラックスルーム！ 👑";
+                resDog.innerText = '😍';
+                msg.innerText = "すごすぎる！ 10問ぜんぶに正解したよ！\nおまけの文章問題は、次はクリアできるようにがんばろう！";
+            } else if (score >= 7) {
+                title.innerText = "✨ すてきなお部屋ができたよ！ ✨";
+                resDog.innerText = '✨🐶✨';
+                msg.innerText = `${score}こも 家具をゲットできたね！\nやりなおしタイムもがんばって、ひっ算が得意になったよ。`;
+            } else if (score >= 4) {
+                title.innerText = "👍 かわいいお部屋になったね！ 👍";
+                resDog.innerText = '🐕';
+                msg.innerText = `たくさんの計算、最後までがんばったね！\nやり直したことで、くりあがりのコツがつかめてきたよ！`;
             } else {
-                const uniqueFacilities = [...new Set(cells.map(c => facilities[c.facIdx]))];
-                const minT = Math.min(...cells.map(c => c.timeIdx));
-                const maxT = Math.max(...cells.map(c => c.timeIdx));
-                
-                if (uniqueFacilities.length === 1) {
-                    modalInfo.textContent = `${displayDate} | ${timeSlots[minT]} 〜 ${timeSlots[maxT]} | ${uniqueFacilities[0]}`;
-                } else {
-                    modalInfo.textContent = `${displayDate} | 複数選択 (${cells.length}枠)`;
-                }
-            }
-
-            reserverNameInput.value = '';
-            reservationPurposeInput.value = '';
-            reserverNameInput.classList.remove('border-red-500');
-            modalError.classList.add('hidden');
-            modalError.textContent = '';
-
-            if (existingReservation) {
-                currentIsEditMode = true;
-                modalTitle.textContent = '予約の確認・編集';
-                reserverNameInput.value = existingReservation.name;
-                reservationPurposeInput.value = existingReservation.purpose || '';
-                saveReservationBtn.textContent = '更新する';
-                cancelReservationBtn.classList.remove('hidden');
-                repeatContainer.classList.add('hidden');
-            } else {
-                currentIsEditMode = false;
-                modalTitle.textContent = '新規予約';
-                saveReservationBtn.textContent = '予約する';
-                cancelReservationBtn.classList.add('hidden');
-                repeatFourWeeksCheckbox.checked = false;
-                repeatContainer.classList.remove('hidden');
-            }
-
-            reservationModal.classList.remove('hidden');
-            reservationModal.classList.add('flex');
-            
-            setTimeout(() => {
-                reserverNameInput.focus();
-            }, 50);
-        }
-
-        function closeModal() {
-            reservationModal.classList.add('hidden');
-            reservationModal.classList.remove('flex');
-            currentSelectedCells = [];
-            currentEditingDate = '';
-            clearSelectionUI();
-        }
-
-        // データベースに同期する処理
-        async function syncToDatabase(dateStr) {
-            if (!db || !currentUser) {
-                updateView();
-                return;
-            }
-            try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'facility_reservations', dateStr);
-                await setDoc(docRef, { slots: reservations[dateStr] || {} });
-            } catch (error) {
-                console.error("保存エラー:", error);
-                showToast("データの同期に失敗しました");
+                title.innerText = "🐾 次こそがんばろう！ 🐾";
+                resDog.innerText = '🐶';
+                msg.innerText = "いっしょに練習してくれてありがとう！\nいつでも何度でも、お部屋づくりを楽しみにきてね。";
             }
         }
 
-        async function saveReservation() {
-            const name = reserverNameInput.value.trim();
-            const purpose = reservationPurposeInput.value.trim();
-
-            if (!name) {
-                reserverNameInput.classList.add('border-red-500');
-                reserverNameInput.classList.add('animate-pulse');
-                setTimeout(() => reserverNameInput.classList.remove('animate-pulse'), 500);
-                return;
-            }
-
-            const dateStr = currentEditingDate;
-            const isRepeat = repeatFourWeeksCheckbox.checked;
-            let datesToSave = [dateStr];
-
-            // リピート機能がオンで、新規作成の場合のみ4週分を追加
-            if (isRepeat && !currentIsEditMode) {
-                let baseDate = new Date(dateStr);
-                for (let i = 1; i <= 4; i++) {
-                    baseDate.setDate(baseDate.getDate() + 7);
-                    datesToSave.push(formatDateForInput(baseDate));
-                }
-            }
-
-            // 重複予約のチェック
-            let conflictMessages = [];
-            datesToSave.forEach(dStr => {
-                // 編集モードでの当日更新は重複チェックから除外
-                if (currentIsEditMode && dStr === dateStr) return; 
-                
-                if (reservations[dStr]) {
-                    currentSelectedCells.forEach(cell => {
-                        const cellKey = `${cell.timeIdx}_${cell.facIdx}`;
-                        if (reservations[dStr][cellKey]) {
-                            const dt = new Date(dStr);
-                            const displayD = `${dt.getMonth() + 1}月${dt.getDate()}日`;
-                            conflictMessages.push(`・${displayD} ${timeSlots[cell.timeIdx]} (${facilities[cell.facIdx]})`);
-                        }
-                    });
-                }
-            });
-
-            if (conflictMessages.length > 0) {
-                modalError.textContent = `以下の日時に既に予約があるため、上書きできません。\n\n${conflictMessages.join('\n')}\n\n別の時間帯を指定するか、「4週間先まで～」のチェックを外してください。`;
-                modalError.classList.remove('hidden');
-                return; // ここで処理を中断
-            }
-
-            let isUpdate = false;
-            
-            datesToSave.forEach(dStr => {
-                if (!reservations[dStr]) {
-                    reservations[dStr] = {};
-                }
-
-                currentSelectedCells.forEach(cell => {
-                    const cellKey = `${cell.timeIdx}_${cell.facIdx}`;
-                    // 現在編集中の日付で、既に予約があれば「更新」扱いとする
-                    if (dStr === dateStr && reservations[dStr][cellKey]) isUpdate = true;
-                    reservations[dStr][cellKey] = { name, purpose };
-                });
-            });
-
-            closeModal();
-            updateView();
-            
-            // クラウドデータベースへの保存を並行して行う
-            const syncPromises = datesToSave.map(dStr => syncToDatabase(dStr));
-            await Promise.all(syncPromises);
-            
-            showToast(isUpdate ? '予約を更新しました' : (isRepeat ? '4週間先まで予約を保存しました' : '予約を保存しました'));
+        // メニューに戻る
+        window.returnToMenu = function() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
         }
-
-        async function cancelReservation() {
-            const dateStr = currentEditingDate;
-
-            currentSelectedCells.forEach(cell => {
-                const cellKey = `${cell.timeIdx}_${cell.facIdx}`;
-                if (reservations[dateStr] && reservations[dateStr][cellKey]) {
-                    delete reservations[dateStr][cellKey];
-                }
-            });
-                
-            if (reservations[dateStr] && Object.keys(reservations[dateStr]).length === 0) {
-                delete reservations[dateStr];
-            }
-
-            closeModal();
-            await syncToDatabase(dateStr);
-            showToast('予約をキャンセルしました');
+        
+        // メッセージを閉じる
+        window.closeMsgBox = function() {
+            document.getElementById('msg-box').classList.add('hidden');
         }
-
-        function updateDateButtons() {
-            const current = new Date(currentDate);
-            current.setHours(0, 0, 0, 0);
-
-            const prev = new Date(current);
-            prev.setDate(prev.getDate() - 1);
-
-            const next = new Date(current);
-            next.setDate(next.getDate() + 1);
-
-            function getDayLabel(dateObj) {
-                return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
-            }
-
-            prevDayBtn.textContent = `◀ ${getDayLabel(prev)}`;
-            nextDayBtn.textContent = `${getDayLabel(next)} ▶`;
-        }
-
-        function updateView() {
-            const dateStr = formatDateForInput(currentDate);
-            datePicker.value = dateStr;
-            currentDateDisplay.textContent = formatDateForDisplay(currentDate);
-            
-            updateDateButtons();
-
-            renderTableHeaders();
-            renderTableBody(dateStr);
-        }
-
-        function setupEventListeners() {
-            document.addEventListener('mouseup', () => {
-                if (!isDragging) return;
-                isDragging = false;
-
-                if (currentSelectedCells.length > 0) {
-                    openModal(currentEditingDate, currentSelectedCells, null);
-                } else {
-                    clearSelectionUI();
-                }
-            });
-
-            datePicker.addEventListener('change', (e) => {
-                const selectedDate = new Date(e.target.value);
-                if (!isNaN(selectedDate.getTime())) {
-                    currentDate = selectedDate;
-                    updateView();
-                }
-            });
-
-            todayBtn.addEventListener('click', () => {
-                currentDate = new Date();
-                updateView();
-            });
-
-            prevDayBtn.addEventListener('click', () => {
-                currentDate.setDate(currentDate.getDate() - 1);
-                updateView();
-            });
-
-            nextDayBtn.addEventListener('click', () => {
-                currentDate.setDate(currentDate.getDate() + 1);
-                updateView();
-            });
-        }
-
-        // クラウドから最新データをリアルタイムで受け取る処理
-        function setupRealtimeSync() {
-            if (!db || !currentUser) return;
-            const reservationsRef = collection(db, 'artifacts', appId, 'public', 'data', 'facility_reservations');
-            
-            onSnapshot(reservationsRef, (snapshot) => {
-                reservations = {};
-                snapshot.forEach((doc) => {
-                    reservations[doc.id] = doc.data().slots || {};
-                });
-                updateView(); // 変更があったら画面を更新
-            }, (error) => {
-                console.error("同期エラー:", error);
-            });
-        }
-
-        // 0時になったら自動で今日の日付に更新する機能
-        function scheduleMidnightUpdate() {
-            const now = new Date();
-            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-            tomorrow.setMilliseconds(10); // 確実に翌日になるように少しマージンを取る
-            const timeUntilMidnight = tomorrow - now;
-
-            setTimeout(() => {
-                currentDate = new Date();
-                updateView();
-                // 次の日のためにタイマーを再セット
-                scheduleMidnightUpdate();
-            }, timeUntilMidnight);
-        }
-
-        function init() {
-            setupEventListeners();
-            updateView();
-            scheduleMidnightUpdate();
-
-            // クラウドデータベースの初期化
-            if (firebaseConfig) {
-                try {
-                    const app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-
-                    const initAuth = async () => {
-                        // GitHub等にホストした場合は__initial_auth_tokenは未定義になり匿名ログインが走ります
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            try {
-                                await signInWithCustomToken(auth, __initial_auth_token);
-                            } catch (error) {
-                                console.warn("カスタムトークンの認証に失敗しました。ご自身のFirebaseプロジェクトに対して匿名ログインを試みます。");
-                                await signInAnonymously(auth);
-                            }
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    };
-
-                    initAuth().catch(console.error);
-
-                    onAuthStateChanged(auth, (user) => {
-                        currentUser = user;
-                        if (user) {
-                            setupRealtimeSync(); // 認証成功後にリアルタイム同期を開始
-                        }
-                    });
-                } catch (e) {
-                    console.error("データベースセットアップエラー:", e);
-                }
-            } else {
-                console.warn("クラウド設定がありません。リロードするとデータは消えます。");
-            }
-        }
-
-        // DOMロード時に初期化
-        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
